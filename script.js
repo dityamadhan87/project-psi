@@ -17,6 +17,26 @@ const meowlifeMachine = createMachine({
             on: {
                 MEOW: {
                     target: 'meowing'
+                },
+                EAT_WHISKAS: {
+                    target: 'eating',
+                    actions: [
+                        assign({
+                            xp: (context) => context.xp + 150,
+                            satiety: (context) => Math.min(100, context.satiety + 20),
+                            money: (context) => Math.max(0, context.money - 5),
+                        })
+                    ],
+                },
+                EAT_FISH: {
+                    target: 'eating',
+                    actions: [
+                        assign({
+                            xp: (context) => context.xp + 200,
+                            satiety: (context) => Math.min(100, context.satiety + 30),
+                            money: (context) => Math.max(0, context.money - 8),
+                        })
+                    ],
                 }
             }
         },
@@ -34,7 +54,22 @@ const meowlifeMachine = createMachine({
                     ]
                 }
             }
-        }
+        },
+        eating: {
+            after: {
+                5000: [
+                    {
+                    target: "idle",
+                    actions: [
+                        assign({
+                            cleanliness: (context) => Math.max(0, context.cleanliness - 20),
+                            mood: (context) => Math.min(100, context.mood + 10)
+                        })
+                    ],
+                    },
+                ],
+            },
+        },
     }
 });
 
@@ -57,6 +92,8 @@ function getXPForCurrentLevel(xp) {
 function getXPForNextLevel() {
     return 1000;
 }
+
+
 
 // Update UI function
 function updateUI(state) {
@@ -101,11 +138,40 @@ function updateUI(state) {
         soundBtn.disabled = false;
         soundBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
+    if (state.matches('eating')) {
+        cat.classList.add('animate-bounce');
+        soundBtn.disabled = true;
+        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
 }
+
+// Dropdown toggle functionality
+const feedBtn = document.getElementById('feed-btn');
+const dropdown = document.getElementById('dropdown-feed-options');
+
+// Toggle dropdown saat tombol diklik
+feedBtn.addEventListener('click', () => {
+dropdown.classList.toggle('hidden');
+});
+
+// Sembunyikan dropdown saat klik di luar area dropdown
+document.addEventListener('click', (event) => {
+if (!feedBtn.contains(event.target) && !dropdown.contains(event.target)) {
+    dropdown.classList.add('hidden');
+}
+});
+
 
 // Event listeners
 document.getElementById('sound-btn').addEventListener('click', () => {
     service.send({ type: 'MEOW' });
+});
+
+document.getElementById('feed-whiskas').addEventListener('click', () => {
+    service.send({ type: 'EAT_WHISKAS' });
+});
+document.getElementById('feed-fish').addEventListener('click', () => {
+    service.send({ type: 'EAT_FISH' });
 });
 
 // Subscribe to state changes

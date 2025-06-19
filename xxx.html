@@ -116,9 +116,33 @@
             <button id="sound-btn" aria-label="Sound" class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
                 <span class="text-2xl">🔊</span>
             </button>
-            <button id="feed-btn" aria-label="Feed" class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
-                <span class="text-2xl">🐟</span>
-            </button>
+            <div class="relative">
+                <button id="feed-btn" aria-label="Feed" class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform focus:outline-none">
+                    <span class="text-2xl" alt="Feed">🐟</span>
+                </button>  
+                <!-- Dropdown pilihan (tersimpan tersembunyi awalnya) -->
+                <div id="dropdown-feed-options"
+                    class="hidden absolute bottom-20 right-0 mt-2 w-40 bg-white rounded-lg shadow-md ring-1 ring-black ring-opacity-5">
+                    <ul class="py-1">
+                    <!-- Pilihan Wishkas -->
+                    <li>
+                        <button id="feed-whiskas"
+                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex justify-between items-center">
+                            <span>Wishkas</span>
+                            <span class="text-green-600 font-semibold">$5</span>
+                        </button>
+                    </li>
+                    <!-- Pilihan Fish -->
+                    <li>
+                        <button id="feed-fish"
+                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex justify-between items-center">
+                            <span>Fish</span>
+                            <span class="text-green-600 font-semibold">$8</span>
+                        </button>
+                    </li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
         <!-- Experience Bar (bawah) -->
