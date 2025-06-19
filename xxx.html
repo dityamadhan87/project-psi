@@ -12,7 +12,7 @@
 <body class="bg-gray-200 flex items-center justify-center min-h-screen overflow-hidden">
 
     <!-- Wrapper utama dengan aspect-ratio 16:10 -->
-    <div class="relative w-full max-w-screen-lg aspect-[16/10] bg-gradient-to-b from-sky-400 to-green-400 bg-cover bg-center rounded-2xl shadow-lg overflow-hidden">
+    <div class="relative w-full max-w-screen-lg aspect-[16/10] bg-[url('./background.png')] bg-cover bg-center">
         <!-- Judul (Meowlife) di bagian atas tengah -->
         <h1 class="absolute top-4 left-1/2 transform -translate-x-1/2 text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
             Meowlife
@@ -93,11 +93,8 @@
 
         <!-- Kucing (tengah) -->
         <div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/3">
-            <div id="cat" class="text-8xl transition-transform duration-300">
-                🐱
-            </div>
-            <div id="meow-bubble" class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-white rounded-full px-3 py-1 shadow-lg hidden">
-                <span class="text-sm">Meow! 🎵</span>
+            <div id="cat" class="text-8xl">
+                <img src="./cat.png" alt="Cat" />
             </div>
         </div>
 

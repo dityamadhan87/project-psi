@@ -18,6 +18,9 @@ const meowlifeMachine = createMachine({
                 MEOW: {
                     target: 'meowing'
                 },
+                SLEEP: {
+                    target: 'sleeping'
+                },
                 EAT_WHISKAS: {
                     target: 'eating',
                     actions: [
@@ -70,6 +73,35 @@ const meowlifeMachine = createMachine({
                 ],
             },
         },
+        sleeping: {
+            invoke: {
+                id: 'sleepingInterval',
+                src: (context, event) => (callback, onReceive) => {
+                    const interval = setInterval(() => {
+                        callback('TICK');
+                    }, 1000);
+
+                    return () => clearInterval(interval); // cleanup saat keluar dari state
+                }
+            },
+            on: {
+                TICK: {
+                    actions: assign({
+                        energy: (ctx) => Math.min(100, ctx.energy + 20),
+                        satiety: (ctx) => Math.max(0, ctx.satiety - 5),
+                        cleanliness: (ctx) => Math.max(0, ctx.cleanliness - 8),
+                        mood: (ctx) => Math.min(100, ctx.mood + 20)
+                    })
+                }
+            },
+            after: {
+                5000: { target: 'idle', actions: [
+                    assign({
+                        xp: (context) => context.xp + 200,
+                    })
+                ]},
+            }
+        }
     }
 });
 
@@ -124,24 +156,48 @@ function updateUI(state) {
 
     // Handle meowing state
     const cat = document.getElementById('cat');
-    const meowBubble = document.getElementById('meow-bubble');
     const soundBtn = document.getElementById('sound-btn');
+    const sleepBtn = document.getElementById('sleep-btn');
+    const bathBtn = document.getElementById('bath-btn');
+    const feedBtn = document.getElementById('feed-btn');
 
     if (state.matches('meowing')) {
-        cat.classList.add('animate-bounce');
-        meowBubble.classList.remove('hidden');
+        cat.innerHTML = `<img src="./cat-meowing.png" alt="Cat Meowing" />`;
+        new Audio('./cat-meow.mp3').play();
         soundBtn.disabled = true;
         soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    } else {
-        cat.classList.remove('animate-bounce');
-        meowBubble.classList.add('hidden');
-        soundBtn.disabled = false;
-        soundBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else if (state.matches('sleeping')) {
+        cat.innerHTML = `<img src="./cat-sleep.png" alt="Cat Sleeping" />`;
+        soundBtn.disabled = true;
+        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        sleepBtn.disabled = true;
+        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        bathBtn.disabled = true;
+        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        feedBtn.disabled = true;
+        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
     }
-    if (state.matches('eating')) {
-        cat.classList.add('animate-bounce');
+    else if (state.matches('eating')) {
+        cat.innerHTML = `<img src="./cat-eating.png" alt="Cat Eating" />`;
         soundBtn.disabled = true;
         soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        sleepBtn.disabled = true;
+        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        bathBtn.disabled = true;
+        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        feedBtn.disabled = true;
+        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+    else {
+        cat.innerHTML = `<img src="./cat.png" alt="Cat" />`;
+        soundBtn.disabled = false;
+        sleepBtn.disabled = false;
+        bathBtn.disabled = false;
+        feedBtn.disabled = false;
+        soundBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        sleepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        bathBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        feedBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 }
 
@@ -151,7 +207,7 @@ const dropdown = document.getElementById('dropdown-feed-options');
 
 // Toggle dropdown saat tombol diklik
 feedBtn.addEventListener('click', () => {
-dropdown.classList.toggle('hidden');
+    dropdown.classList.toggle('hidden');
 });
 
 // Sembunyikan dropdown saat klik di luar area dropdown
@@ -161,12 +217,13 @@ if (!feedBtn.contains(event.target) && !dropdown.contains(event.target)) {
 }
 });
 
-
 // Event listeners
 document.getElementById('sound-btn').addEventListener('click', () => {
     service.send({ type: 'MEOW' });
 });
-
+document.getElementById('sleep-btn').addEventListener('click', () => {
+    service.send({ type: 'SLEEP' });
+});
 document.getElementById('feed-whiskas').addEventListener('click', () => {
     service.send({ type: 'EAT_WHISKAS' });
 });
@@ -181,6 +238,3 @@ service.onTransition((state) => {
 
 // Start the service
 service.start();
-
-// Initial UI update
-updateUI(service.getSnapshot());
