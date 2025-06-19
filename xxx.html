@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meowlife - Virtual Pet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/xstate@4.38.3/dist/xstate.js"></script>
+</head>
+
+<body class="bg-gray-200 flex items-center justify-center min-h-screen overflow-hidden">
+
+    <!-- Wrapper utama dengan aspect-ratio 16:10 -->
+    <div class="relative w-full max-w-screen-lg aspect-[16/10] bg-gradient-to-b from-sky-400 to-green-400 bg-cover bg-center rounded-2xl shadow-lg overflow-hidden">
+        <!-- Judul (Meowlife) di bagian atas tengah -->
+        <h1 class="absolute top-4 left-1/2 transform -translate-x-1/2 text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
+            Meowlife
+        </h1>
+
+        <!-- Panel Status (kiri atas) -->
+        <div class="absolute top-16 left-6 bg-white/65 backdrop-blur-sm rounded-lg p-4 space-y-4 w-72">
+            <!-- Energy -->
+            <div class="flex items-center space-x-3">
+                <button aria-label="Energy" class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md">
+                    <div class="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">⚡</div>
+                </button>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-gray-800">Energy</span>
+                        <span id="energy-value" class="text-xs text-gray-600">50</span>
+                    </div>
+                    <div class="w-full h-3 bg-gray-300 rounded-full">
+                        <div id="energy-bar" class="h-full bg-green-500 rounded-full transition-all duration-300" style="width: 50%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Satiety Level -->
+            <div class="flex items-center space-x-3">
+                <button aria-label="Satiety Level" class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md">
+                    <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">🍽️</div>
+                </button>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-gray-800">Satiety Level</span>
+                        <span id="satiety-value" class="text-xs text-gray-600">50</span>
+                    </div>
+                    <div class="w-full h-3 bg-gray-300 rounded-full">
+                        <div id="satiety-bar" class="h-full bg-yellow-500 rounded-full transition-all duration-300" style="width: 50%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cleanliness -->
+            <div class="flex items-center space-x-3">
+                <button aria-label="Cleanliness" class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">🛁</div>
+                </button>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-gray-800">Cleanliness</span>
+                        <span id="cleanliness-value" class="text-xs text-gray-600">50</span>
+                    </div>
+                    <div class="w-full h-3 bg-gray-300 rounded-full">
+                        <div id="cleanliness-bar" class="h-full bg-blue-500 rounded-full transition-all duration-300" style="width: 50%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mood -->
+            <div class="flex items-center space-x-3">
+                <button aria-label="Mood" class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md">
+                    <div class="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center">😊</div>
+                </button>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-gray-800">Mood</span>
+                        <span id="mood-value" class="text-xs text-gray-600">50</span>
+                    </div>
+                    <div class="w-full h-3 bg-gray-300 rounded-full">
+                        <div id="mood-bar" class="h-full bg-pink-500 rounded-full transition-all duration-300" style="width: 50%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Score / Uang (kanan atas) -->
+        <div class="absolute top-20 right-6 bg-white p-5 rounded-full border-2 border-yellow-400 flex items-center space-x-2 shadow-md">
+            <span class="text-xl">💰</span>
+            <p id="money-value" class="text-sm font-semibold text-green-700">$0</p>
+        </div>
+
+        <!-- Kucing (tengah) -->
+        <div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/3">
+            <div id="cat" class="text-8xl transition-transform duration-300">
+                🐱
+            </div>
+            <div id="meow-bubble" class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-white rounded-full px-3 py-1 shadow-lg hidden">
+                <span class="text-sm">Meow! 🎵</span>
+            </div>
+        </div>
+
+        <!-- Tombol Aksi (kiri bawah) -->
+        <div class="absolute left-10 bottom-20 space-y-7">
+            <button id="sleep-btn" aria-label="Sleep" class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+                <span class="text-2xl">😴</span>
+            </button>
+            <button id="bath-btn" aria-label="Bath" class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+                <span class="text-2xl">🛁</span>
+            </button>
+        </div>
+
+        <!-- Tombol Aksi (kanan bawah) -->
+        <div class="absolute right-10 bottom-20 space-y-7">
+            <button id="sound-btn" aria-label="Sound" class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+                <span class="text-2xl">🔊</span>
+            </button>
+            <button id="feed-btn" aria-label="Feed" class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+                <span class="text-2xl">🐟</span>
+            </button>
+        </div>
+
+        <!-- Experience Bar (bawah) -->
+        <div class="absolute bottom-3.5 left-6 right-6">
+            <!-- Label Experience & Level -->
+            <div class="flex items-center justify-between mb-1 px-2">
+                <span class="text-xs font-medium text-gray-800">Experience</span>
+                <span id="level-value" class="text-xs text-gray-500">Level 1</span>
+            </div>
+            <!-- Bar Utama -->
+            <div class="w-full h-4 bg-gray-300 rounded-full overflow-hidden">
+                <div id="xp-bar" class="h-full bg-green-500 transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <!-- XP Text Kiri & Kanan -->
+            <div class="flex justify-between mt-1 text-xs text-gray-600 px-2">
+                <span id="current-xp">0 XP</span>
+                <span id="next-level-xp">1000 XP</span>
+            </div>
+        </div>
+    </div>
+    <script src="./script.js"></script>
+</body>
+
+</html>
