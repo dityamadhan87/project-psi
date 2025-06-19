@@ -5,12 +5,12 @@ const meowlifeMachine = createMachine({
     id: 'meowlife',
     initial: 'idle',
     context: {
-        energy: 50,
-        satiety: 50,
-        cleanliness: 50,
-        mood: 50,
+        energy: 100,
+        satiety: 100,
+        cleanliness: 100,
+        mood: 100,
         xp: 0,
-        money: 0
+        money: 5
     },
     states: {
         idle: {
@@ -23,6 +23,7 @@ const meowlifeMachine = createMachine({
                 },
                 EAT_WHISKAS: {
                     target: 'eating',
+                    cond: (context) => context.money >= 5,
                     actions: [
                         assign({
                             xp: (context) => context.xp + 150,
@@ -33,6 +34,7 @@ const meowlifeMachine = createMachine({
                 },
                 EAT_FISH: {
                     target: 'eating',
+                    cond: (context) => context.money >= 8,
                     actions: [
                         assign({
                             xp: (context) => context.xp + 200,
@@ -40,6 +42,9 @@ const meowlifeMachine = createMachine({
                             money: (context) => Math.max(0, context.money - 8),
                         })
                     ],
+                },
+                BATH: {
+                    target: 'bathing',
                 }
             }
         },
@@ -101,6 +106,21 @@ const meowlifeMachine = createMachine({
                     })
                 ]},
             }
+        },
+        bathing: {
+            after: {
+                5000: {
+                    target: 'idle',
+                    actions: [
+                        assign({
+                            xp: (context) => context.xp + 250,
+                            energy: (context) => Math.max(0, context.energy - 10),
+                            cleanliness: (context) => Math.min(100, context.cleanliness = 100),
+                            satiety: (context) => Math.max(0, context.satiety - 7),
+                        })
+                    ]
+                }
+            }
         }
     }
 });
@@ -160,6 +180,19 @@ function updateUI(state) {
     const sleepBtn = document.getElementById('sleep-btn');
     const bathBtn = document.getElementById('bath-btn');
     const feedBtn = document.getElementById('feed-btn');
+    const dropdown = document.getElementById('dropdown-feed-options');
+
+    // Toggle dropdown saat tombol diklik
+    feedBtn.addEventListener('click', () => {
+        dropdown.classList.toggle('hidden');
+    });
+
+    // Sembunyikan dropdown saat klik di luar area dropdown
+    document.addEventListener('click', (event) => {
+    if (!feedBtn.contains(event.target) && !dropdown.contains(event.target)) {
+        dropdown.classList.add('hidden');
+    }
+    });
 
     if (state.matches('meowing')) {
         cat.innerHTML = `<img src="./cat-meowing.png" alt="Cat Meowing" />`;
@@ -188,6 +221,17 @@ function updateUI(state) {
         feedBtn.disabled = true;
         feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
     }
+    else if (state.matches('bathing')) {
+        cat.innerHTML = `<img src="./cat-bathing.png" alt="Cat Bathing" />`;
+        soundBtn.disabled = true;
+        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        sleepBtn.disabled = true;
+        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        bathBtn.disabled = true;
+        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        feedBtn.disabled = true;
+        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
     else {
         cat.innerHTML = `<img src="./cat.png" alt="Cat" />`;
         soundBtn.disabled = false;
@@ -201,22 +245,6 @@ function updateUI(state) {
     }
 }
 
-// Dropdown toggle functionality
-const feedBtn = document.getElementById('feed-btn');
-const dropdown = document.getElementById('dropdown-feed-options');
-
-// Toggle dropdown saat tombol diklik
-feedBtn.addEventListener('click', () => {
-    dropdown.classList.toggle('hidden');
-});
-
-// Sembunyikan dropdown saat klik di luar area dropdown
-document.addEventListener('click', (event) => {
-if (!feedBtn.contains(event.target) && !dropdown.contains(event.target)) {
-    dropdown.classList.add('hidden');
-}
-});
-
 // Event listeners
 document.getElementById('sound-btn').addEventListener('click', () => {
     service.send({ type: 'MEOW' });
@@ -229,6 +257,9 @@ document.getElementById('feed-whiskas').addEventListener('click', () => {
 });
 document.getElementById('feed-fish').addEventListener('click', () => {
     service.send({ type: 'EAT_FISH' });
+});
+document.getElementById('bath-btn').addEventListener('click', () => {
+    service.send({ type: 'BATH' });
 });
 
 // Subscribe to state changes
