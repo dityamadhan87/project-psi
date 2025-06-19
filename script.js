@@ -5,15 +5,24 @@ const meowlifeMachine = createMachine({
     id: 'meowlife',
     initial: 'idle',
     context: {
-        energy: 100,
-        satiety: 100,
-        cleanliness: 100,
-        mood: 100,
+        energy: 50,
+        satiety: 50,
+        cleanliness: 50,
+        mood: 50,
         xp: 0,
         money: 5
     },
     states: {
         idle: {
+            after: {
+                5000: {
+                    actions: [
+                        () => {
+                            document.getElementById('cat-poop').classList.remove('hidden');
+                        }
+                    ]
+                }
+            },
             on: {
                 MEOW: {
                     target: 'meowing'
@@ -45,7 +54,23 @@ const meowlifeMachine = createMachine({
                 },
                 BATH: {
                     target: 'bathing',
-                }
+                },
+                CLEAN_POOP: {
+                    target: 'idle',
+                    actions: [
+                        assign({
+                            money: (context) => context.money + 3,
+                            cleanliness: (context) => Math.max(0, context.cleanliness - 10),
+                            mood: (context) => Math.min(100, context.mood + 5),
+                            satiety: (context) => Math.max(0, context.satiety - 10),
+                            energy: (context) => Math.max(0, context.energy - 10),
+                            xp: (context) => context.xp + 150
+                        }),
+                        () => {
+                            document.getElementById('cat-poop').classList.add('hidden');
+                        }
+                    ]
+                },
             }
         },
         meowing: {
@@ -145,8 +170,6 @@ function getXPForNextLevel() {
     return 1000;
 }
 
-
-
 // Update UI function
 function updateUI(state) {
     const context = state.context;
@@ -180,19 +203,6 @@ function updateUI(state) {
     const sleepBtn = document.getElementById('sleep-btn');
     const bathBtn = document.getElementById('bath-btn');
     const feedBtn = document.getElementById('feed-btn');
-    const dropdown = document.getElementById('dropdown-feed-options');
-
-    // Toggle dropdown saat tombol diklik
-    feedBtn.addEventListener('click', () => {
-        dropdown.classList.toggle('hidden');
-    });
-
-    // Sembunyikan dropdown saat klik di luar area dropdown
-    document.addEventListener('click', (event) => {
-    if (!feedBtn.contains(event.target) && !dropdown.contains(event.target)) {
-        dropdown.classList.add('hidden');
-    }
-    });
 
     if (state.matches('meowing')) {
         cat.innerHTML = `<img src="./cat-meowing.png" alt="Cat Meowing" />`;
@@ -231,8 +241,7 @@ function updateUI(state) {
         bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
         feedBtn.disabled = true;
         feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    }
-    else {
+    } else {
         cat.innerHTML = `<img src="./cat.png" alt="Cat" />`;
         soundBtn.disabled = false;
         sleepBtn.disabled = false;
@@ -244,6 +253,19 @@ function updateUI(state) {
         feedBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 }
+
+const feedBtn = document.getElementById('feed-btn');
+const dropdown = document.getElementById('dropdown-feed-options');
+
+document.getElementById('feed-btn').addEventListener('click', () => {
+    dropdown.classList.toggle('hidden');
+});
+
+document.addEventListener('click', (event) => {
+    if (!feedBtn.contains(event.target) && !dropdown.contains(event.target)) {
+        dropdown.classList.add('hidden');
+    }
+});
 
 // Event listeners
 document.getElementById('sound-btn').addEventListener('click', () => {
@@ -260,6 +282,9 @@ document.getElementById('feed-fish').addEventListener('click', () => {
 });
 document.getElementById('bath-btn').addEventListener('click', () => {
     service.send({ type: 'BATH' });
+});
+document.getElementById('cat-poop').addEventListener('click', () => {
+    service.send('CLEAN_POOP');
 });
 
 // Subscribe to state changes
