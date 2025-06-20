@@ -43,6 +43,10 @@ const meowlifeMachine = createMachine({
                             mood: (context) => Math.max(0, context.mood - 100),
                         })
                     ]
+                },
+                {
+                    cond: (context) => context.energy <= 0,
+                    target: 'sleeping'
                 }
             ],
             on: {
@@ -76,22 +80,6 @@ const meowlifeMachine = createMachine({
                 },
                 BATH: {
                     target: 'bathing',
-                },
-                CLEAN_POOP: {
-                    target: 'idle',
-                    actions: [
-                        assign({
-                            money: (context) => context.money + 3,
-                            cleanliness: (context) => Math.max(0, context.cleanliness - 10),
-                            mood: (context) => Math.min(100, context.mood + 5),
-                            satiety: (context) => Math.max(0, context.satiety - 10),
-                            energy: (context) => Math.max(0, context.energy - 10),
-                            xp: (context) => context.xp + 150
-                        }),
-                        () => {
-                            document.getElementById('cat-poop').classList.add('hidden');
-                        }
-                    ]
                 },
                 CLEAN_POOP: {
                     target: 'idle',
@@ -147,7 +135,7 @@ const meowlifeMachine = createMachine({
             }),
             invoke: {
                 id: 'sleepingInterval',
-                src: (context, event) => (callback, onReceive) => {
+                src: () => (callback) => {
                     const interval = setInterval(() => {
                         callback('TICK');
                     }, 1000);
@@ -223,12 +211,28 @@ const meowlifeMachine = createMachine({
                     ]
                 }
             }
-        }
+        },
     }
 });
 
 // Initialize service
 const service = interpret(meowlifeMachine);
+
+// UI Elements
+const elemens = {
+        cat:        document.getElementById('cat'),
+        loveLove:   document.getElementById('love1'),
+        soundBtn:   document.getElementById('sound-btn'),
+        sleepBtn:   document.getElementById('sleep-btn'),
+        bathBtn:    document.getElementById('bath-btn'),
+        feedBtn:    document.getElementById('feed-btn'),
+        dropdown:   document.getElementById('dropdown-feed-options'),
+        celebrate:  document.getElementById('celebrate'),
+        wakeUp:     document.getElementById('wake-up')
+}
+
+// Sleep audio
+let sleepAudio = null;
 
 // Helper functions
 function getBarWidth(value) {
@@ -241,6 +245,17 @@ function getXPForCurrentLevel(xp) {
 
 function getXPForNextLevel() {
     return 1000;
+}
+
+function disableButton(){
+    elemens.soundBtn.disabled = true;
+    elemens.soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    elemens.sleepBtn.disabled = true;
+    elemens.sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    elemens.bathBtn.disabled = true;
+    elemens.bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    elemens.feedBtn.disabled = true;
+    elemens.feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
 }
 
 // Update UI function
@@ -270,120 +285,78 @@ function updateUI(state) {
     document.getElementById('next-level-xp').textContent = nextLevelXP + ' XP';
     document.getElementById('xp-bar').style.width = getBarWidth((currentXP / nextLevelXP) * 100);
 
-    // Handle meowing state
-    const cat = document.getElementById('cat');
-    const loveLove = document.getElementById('love1');
-    const soundBtn = document.getElementById('sound-btn');
-    const sleepBtn = document.getElementById('sleep-btn');
-    const bathBtn = document.getElementById('bath-btn');
-    const feedBtn = document.getElementById('feed-btn');
-    const dropdown = document.getElementById('dropdown-feed-options');
-    const celebrate = document.getElementById('celebrate');
-    const wakeUp = document.getElementById('wake-up');
-
-    // Toggle dropdown saat tombol diklik
-    feedBtn.addEventListener('click', () => {
-        dropdown.classList.toggle('hidden');
-    });
-    // Sembunyikan dropdown saat klik di luar area dropdown
-    document.addEventListener('click', (event) => {
-    if (!feedBtn.contains(event.target) && !dropdown.contains(event.target)) {
-        dropdown.classList.add('hidden');
-    }
-    });
-
     if (state.matches('meowing')) {
-        cat.innerHTML = `<img src="./cat-meowing.png" alt="Cat Meowing" />`;
+        elemens.cat.innerHTML = `<img src="./cat-meowing.png" alt="Cat Meowing" />`;
         new Audio('./cat-meow.mp3').play();
-        soundBtn.disabled = true;
-        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        sleepBtn.disabled = true;
-        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        bathBtn.disabled = true;
-        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        feedBtn.disabled = true;
-        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        disableButton();
     } 
     else if (state.matches('sleeping')) {
-        cat.innerHTML = `<img src="./cat-sleep.png" alt="Cat Sleeping" />`;
-        new Audio('./cat-sleping.wav').play();
-        wakeUp.classList.remove('hidden');
-        soundBtn.disabled = true;
-        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        sleepBtn.disabled = true;
-        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        bathBtn.disabled = true;
-        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        feedBtn.disabled = true;
-        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        elemens.cat.innerHTML = `<img src="./cat-sleep.png" alt="Cat Sleeping" />`;
+        elemens.wakeUp.classList.remove('hidden');
+        disableButton();
+        if (!sleepAudio) {
+            sleepAudio = new Audio('./cat-sleping.wav');
+            sleepAudio.loop = true;
+            sleepAudio.play();
+        }
     }
+    
     else if (state.matches('eating')) {
-        cat.innerHTML = `<img src="./cat-eating.png" alt="Cat Eating" />`;
+        elemens.cat.innerHTML = `<img src="./cat-eating.png" alt="Cat Eating" />`;
         new Audio('./cat-eating.mp3').play();
-        soundBtn.disabled = true;
-        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        sleepBtn.disabled = true;
-        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        bathBtn.disabled = true;
-        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        feedBtn.disabled = true;
-        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        disableButton();
     }
     else if (state.matches('bathing')) {
-        cat.innerHTML = `<img src="./cat-bathing.png" alt="Cat Bathing" />`;
+        elemens.cat.innerHTML = `<img src="./cat-bathing.png" alt="Cat Bathing" />`;
         new Audio('./cat-bath-shower.wav').play();
-        soundBtn.disabled = true;
-        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        sleepBtn.disabled = true;
-        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        bathBtn.disabled = true;
-        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        feedBtn.disabled = true;
-        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        disableButton();
     }
     else if (state.matches('reward')) {
-        cat.innerHTML = `<img src="./cat-happy.gif" alt="Cat Happy" />`;
+        elemens.cat.innerHTML = `<img src="./cat-happy.gif" alt="Cat Happy" />`;
         new Audio('./cat-happy.mp3').play();
-        loveLove.classList.remove('hidden');
-        soundBtn.disabled = true;
-        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        sleepBtn.disabled = true;
-        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        bathBtn.disabled = true;
-        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        feedBtn.disabled = true;
-        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        elemens.loveLove.classList.remove('hidden');
+        disableButton();
     }
     else if (state.matches('celebrate')) {
-        cat.innerHTML = `<img src="./cat-celebration.gif" alt="cat Celebrate" />`;
+        elemens.cat.innerHTML = `<img src="./cat-celebration.gif" alt="cat Celebrate" />`;
         new Audio('./celebrate.mp3').play();
-        celebrate.classList.remove('hidden');
-        soundBtn.disabled = true;
-        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        sleepBtn.disabled = true;
-        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        bathBtn.disabled = true;
-        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        feedBtn.disabled = true;
-        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        elemens.celebrate.classList.remove('hidden');
+        disableButton();
     }
     else {
-        cat.innerHTML = `<img src="./cat.png" alt="Cat" />`;
-        loveLove.classList.add('hidden');
-        celebrate.classList.add('hidden');
-        wakeUp.classList.add('hidden');
-        soundBtn.disabled = false;
-        sleepBtn.disabled = false;
-        bathBtn.disabled = false;
-        feedBtn.disabled = false;
-        soundBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        sleepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        bathBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        feedBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        if (sleepAudio) {
+            sleepAudio.pause();
+            sleepAudio.currentTime = 0;
+            sleepAudio = null;
+        }
+        elemens.cat.innerHTML = `<img src="./cat.png" alt="Cat" />`;
+        elemens.loveLove.classList.add('hidden');
+        elemens.celebrate.classList.add('hidden');
+        elemens.wakeUp.classList.add('hidden');
+        elemens.soundBtn.disabled = false;
+        elemens.sleepBtn.disabled = false;
+        elemens.bathBtn.disabled = false;
+        elemens.feedBtn.disabled = false;
+        elemens.soundBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        elemens.sleepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        elemens.bathBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        elemens.feedBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 }
 
 // Event listeners
+
+// Toggle dropdown saat tombol diklik
+elemens.feedBtn.addEventListener('click', () => {
+    elemens.dropdown.classList.toggle('hidden');
+});
+// Sembunyikan dropdown saat klik di luar area dropdown
+document.addEventListener('click', (event) => {
+    if (!elemens.feedBtn.contains(event.target) && !elemens.dropdown.contains(event.target)) {
+        elemens.dropdown.classList.add('hidden');
+    }
+});
+
 document.getElementById('sound-btn').addEventListener('click', () => {
     service.send({ type: 'MEOW' });
 });
@@ -414,7 +387,6 @@ document.getElementById('cat-poop').addEventListener('click', () => {
 document.getElementById('wake-up').addEventListener('click', () => {
     service.send('WAKE_UP');
 });
-
 
 // Subscribe to state changes
 service.onTransition((state) => {
