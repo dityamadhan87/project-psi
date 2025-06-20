@@ -1,4 +1,6 @@
 const { createMachine, assign, interpret } = XState;
+const { fromEvent, merge } = rxjs;
+const { filter, tap, map } = rxjs.operators;
 
 // XState Machine
 const meowlifeMachine = createMachine({
@@ -215,183 +217,126 @@ const meowlifeMachine = createMachine({
     }
 });
 
-// Initialize service
-const service = interpret(meowlifeMachine);
+const service = interpret(meowlifeMachine).start();
 
-// UI Elements
-const elemens = {
-        cat:        document.getElementById('cat'),
-        loveLove:   document.getElementById('love1'),
-        soundBtn:   document.getElementById('sound-btn'),
-        sleepBtn:   document.getElementById('sleep-btn'),
-        bathBtn:    document.getElementById('bath-btn'),
-        feedBtn:    document.getElementById('feed-btn'),
-        dropdown:   document.getElementById('dropdown-feed-options'),
-        celebrate:  document.getElementById('celebrate'),
-        wakeUp:     document.getElementById('wake-up')
-}
+const el = {
+    cat: document.getElementById('cat'),
+    poop: document.getElementById('cat-poop'),
+    love: document.getElementById('love1'),
+    dropdown: document.getElementById('dropdown-feed-options'),
+    celebrate: document.getElementById('celebrate'),
+    wake: document.getElementById('wake-up'),
+    msg: document.getElementById('sleep-msg'),
+    btns: {
+        sound: document.getElementById('sound-btn'),
+        sleep: document.getElementById('sleep-btn'),
+        bath: document.getElementById('bath-btn'),
+        feed: document.getElementById('feed-btn'),
+        whiskas: document.getElementById('feed-whiskas'),
+        fish: document.getElementById('feed-fish')
+    }
+};
 
-// Sleep audio
 let sleepAudio = null;
 
-// Helper functions
-function getBarWidth(value) {
-    return Math.max(0, Math.min(100, value)) + '%';
-}
+function getBarWidth(val) { return Math.max(0, Math.min(100, val)) + '%'; }
+function getXP(ctx) { return ctx.xp % 1000; }
 
-function getXPForCurrentLevel(xp) {
-    return xp % 1000;
-}
-
-function getXPForNextLevel() {
-    return 1000;
-}
-
-function disableButton(){
-    elemens.soundBtn.disabled = true;
-    elemens.soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    elemens.sleepBtn.disabled = true;
-    elemens.sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    elemens.bathBtn.disabled = true;
-    elemens.bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    elemens.feedBtn.disabled = true;
-    elemens.feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
-}
-
-// Update UI function
 function updateUI(state) {
-    const context = state.context;
+    const ctx = state.context;
 
-    // Update stat values
-    document.getElementById('energy-value').textContent = context.energy;
-    document.getElementById('satiety-value').textContent = context.satiety;
-    document.getElementById('cleanliness-value').textContent = context.cleanliness;
-    document.getElementById('mood-value').textContent = context.mood;
-    document.getElementById('money-value').textContent = '$' + context.money;
+    ['energy', 'satiety', 'cleanliness', 'mood'].forEach(key => {
+        document.getElementById(`${key}-value`).textContent = ctx[key];
+        document.getElementById(`${key}-bar`).style.width = getBarWidth(ctx[key]);
+    });
 
-    // Update progress bars
-    document.getElementById('energy-bar').style.width = getBarWidth(context.energy);
-    document.getElementById('satiety-bar').style.width = getBarWidth(context.satiety);
-    document.getElementById('cleanliness-bar').style.width = getBarWidth(context.cleanliness);
-    document.getElementById('mood-bar').style.width = getBarWidth(context.mood);
+    document.getElementById('money-value').textContent = `$${ctx.money}`;
+    document.getElementById('level-value').textContent = `Level ${ctx.lv}`;
+    document.getElementById('current-xp').textContent = `${getXP(ctx)} XP`;
+    document.getElementById('next-level-xp').textContent = '1000 XP';
+    document.getElementById('xp-bar').style.width = getBarWidth((getXP(ctx) / 1000) * 100);
 
-    // Update experience
-    const level = context.lv;
-    const currentXP = getXPForCurrentLevel(context.xp);
-    const nextLevelXP = getXPForNextLevel();
+    const stateToImage = {
+        meowing: ['cat-meowing.png', './cat-meow.mp3'],
+        sleeping: ['cat-sleep.png', './cat-sleping.wav'],
+        eating: ['cat-eating.png', './cat-eating.mp3'],
+        bathing: ['cat-bathing.png', './cat-bath-shower.wav'],
+        reward: ['cat-happy.gif', './cat-happy.mp3'],
+        celebrate: ['cat-celebration.gif', './celebrate.mp3']
+    };
 
-    document.getElementById('level-value').textContent = 'Level ' + level;
-    document.getElementById('current-xp').textContent = currentXP + ' XP';
-    document.getElementById('next-level-xp').textContent = nextLevelXP + ' XP';
-    document.getElementById('xp-bar').style.width = getBarWidth((currentXP / nextLevelXP) * 100);
-
-    if (state.matches('meowing')) {
-        elemens.cat.innerHTML = `<img src="./cat-meowing.png" alt="Cat Meowing" />`;
-        new Audio('./cat-meow.mp3').play();
-        disableButton();
-    } 
-    else if (state.matches('sleeping')) {
-        elemens.cat.innerHTML = `<img src="./cat-sleep.png" alt="Cat Sleeping" />`;
-        elemens.wakeUp.classList.remove('hidden');
-        disableButton();
-        if (!sleepAudio) {
-            sleepAudio = new Audio('./cat-sleping.wav');
-            sleepAudio.loop = true;
-            sleepAudio.play();
+    Object.entries(stateToImage).forEach(([stateKey, [img, audio]]) => {
+        if (state.matches(stateKey)) {
+            el.cat.innerHTML = `<img src="${img}" alt="${stateKey}" />`;
+            const sound = new Audio(audio);
+            if (stateKey === 'sleeping') {
+                if (!sleepAudio) {
+                    sleepAudio = sound;
+                    sound.loop = true;
+                    sound.play();
+                }
+                el.wake.classList.remove('hidden');
+            } else {
+                sound.play();
+                disableButtons();
+            }
         }
-    }
-    
-    else if (state.matches('eating')) {
-        elemens.cat.innerHTML = `<img src="./cat-eating.png" alt="Cat Eating" />`;
-        new Audio('./cat-eating.mp3').play();
-        disableButton();
-    }
-    else if (state.matches('bathing')) {
-        elemens.cat.innerHTML = `<img src="./cat-bathing.png" alt="Cat Bathing" />`;
-        new Audio('./cat-bath-shower.wav').play();
-        disableButton();
-    }
-    else if (state.matches('reward')) {
-        elemens.cat.innerHTML = `<img src="./cat-happy.gif" alt="Cat Happy" />`;
-        new Audio('./cat-happy.mp3').play();
-        elemens.loveLove.classList.remove('hidden');
-        disableButton();
-    }
-    else if (state.matches('celebrate')) {
-        elemens.cat.innerHTML = `<img src="./cat-celebration.gif" alt="cat Celebrate" />`;
-        new Audio('./celebrate.mp3').play();
-        elemens.celebrate.classList.remove('hidden');
-        disableButton();
-    }
-    else {
+    });
+
+    if (state.matches('idle')) {
         if (sleepAudio) {
             sleepAudio.pause();
-            sleepAudio.currentTime = 0;
             sleepAudio = null;
         }
-        elemens.cat.innerHTML = `<img src="./cat.png" alt="Cat" />`;
-        elemens.loveLove.classList.add('hidden');
-        elemens.celebrate.classList.add('hidden');
-        elemens.wakeUp.classList.add('hidden');
-        elemens.soundBtn.disabled = false;
-        elemens.sleepBtn.disabled = false;
-        elemens.bathBtn.disabled = false;
-        elemens.feedBtn.disabled = false;
-        elemens.soundBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        elemens.sleepBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        elemens.bathBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        elemens.feedBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        el.cat.innerHTML = `<img src="./cat.png" alt="Cat" />`;
+        el.love.classList.add('hidden');
+        el.celebrate.classList.add('hidden');
+        el.wake.classList.add('hidden');
+        enableButtons();
     }
+
+    if (state.matches('reward')) el.love.classList.remove('hidden');
+    if (state.matches('celebrate')) el.celebrate.classList.remove('hidden');
 }
 
-// Event listeners
+function disableButtons() {
+    Object.values(el.btns).forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+    });
+}
 
-// Toggle dropdown saat tombol diklik
-elemens.feedBtn.addEventListener('click', () => {
-    elemens.dropdown.classList.toggle('hidden');
-});
-// Sembunyikan dropdown saat klik di luar area dropdown
-document.addEventListener('click', (event) => {
-    if (!elemens.feedBtn.contains(event.target) && !elemens.dropdown.contains(event.target)) {
-        elemens.dropdown.classList.add('hidden');
-    }
-});
+function enableButtons() {
+    Object.values(el.btns).forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    });
+}
 
-document.getElementById('sound-btn').addEventListener('click', () => {
-    service.send({ type: 'MEOW' });
-});
-
-const msg = document.getElementById('sleep-msg');
-document.getElementById('sleep-btn').addEventListener('click', () => {
+merge(
+    fromEvent(el.btns.sound, 'click').pipe(map(() => 'MEOW')),
+    fromEvent(el.btns.sleep, 'click').pipe(map(() => 'SLEEP')),
+    fromEvent(el.btns.whiskas, 'click').pipe(map(() => 'EAT_WHISKAS')),
+    fromEvent(el.btns.fish, 'click').pipe(map(() => 'EAT_FISH')),
+    fromEvent(el.btns.bath, 'click').pipe(map(() => 'BATH')),
+    fromEvent(el.poop, 'click').pipe(map(() => 'CLEAN_POOP')),
+    fromEvent(el.wake, 'click').pipe(map(() => 'WAKE_UP'))
+).subscribe(event => {
     const { energy } = service.getSnapshot().context;
-    if (energy >= 100) {
-        msg.classList.remove('hidden');
-        setTimeout(() => msg.classList.add('hidden'), 3000);
+    if (event === 'SLEEP' && energy >= 100) {
+        el.msg.classList.remove('hidden');
+        setTimeout(() => el.msg.classList.add('hidden'), 3000);
     } else {
-        service.send('SLEEP');
-        msg.classList.add('hidden'); // sembunyikan pesan jika sebelumnya muncul
+        el.msg.classList.add('hidden');
+        service.send(event);
     }
 });
-document.getElementById('feed-whiskas').addEventListener('click', () => {
-    service.send({ type: 'EAT_WHISKAS' });
-});
-document.getElementById('feed-fish').addEventListener('click', () => {
-    service.send({ type: 'EAT_FISH' });
-});
-document.getElementById('bath-btn').addEventListener('click', () => {
-    service.send({ type: 'BATH' });
-});
-document.getElementById('cat-poop').addEventListener('click', () => {
-    service.send('CLEAN_POOP');
-});
-document.getElementById('wake-up').addEventListener('click', () => {
-    service.send('WAKE_UP');
-});
 
-// Subscribe to state changes
-service.onTransition((state) => {
-    updateUI(state);
+fromEvent(el.btns.feed, 'click').subscribe(() => {
+    el.dropdown.classList.toggle('hidden');
 });
+fromEvent(document, 'click').pipe(
+    filter(e => !el.btns.feed.contains(e.target) && !el.dropdown.contains(e.target))
+).subscribe(() => el.dropdown.classList.add('hidden'));
 
-// Start the service
-service.start();
+service.onTransition(updateUI);
