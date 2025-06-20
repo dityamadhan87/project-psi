@@ -13,11 +13,24 @@
 
     <!-- Wrapper utama dengan aspect-ratio 16:10 -->
     <div class="relative w-full max-w-screen-lg aspect-[16/10] bg-[url('./background.png')] bg-cover bg-center">
+        <!-- Love-love Happy-->
+        <div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div id="love1" class="flex items-center justify-center gap-4 hidden">
+                <img src="./love2.gif" alt="Love Left" class="w-60 h-full" />
+                <img src="./love1.gif" alt="Love Center" class="w-full min-h-screen" />
+                <img src="./love2.gif" alt="Love Right" class="w-60 h-full" />
+            </div>
+            <div id="celebrate" class="hidden relative w-screen h-screen">
+                <img src="./celebration-2.gif" alt="Celebrate" class="absolute top-0 left-0 w-full h-full object-cover z-10" />
+                <img src="./celebration-1.gif" alt="Celebrate" class="absolute top-0 left-0 w-full h-full object-cover z-20" />
+            </div>
+        </div>
+
         <!-- Judul (Meowlife) di bagian atas tengah -->
         <h1 class="absolute top-4 left-1/2 transform -translate-x-1/2 text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
             Meowlife
         </h1>
-
+        
         <!-- Panel Status (kiri atas) -->
         <div class="absolute top-16 left-6 bg-white/65 backdrop-blur-sm rounded-lg p-4 space-y-4 w-72">
             <!-- Energy -->
@@ -96,6 +109,7 @@
             <div id="cat" class="text-8xl">
                 <img src="./cat.png" alt="Cat" />
             </div>
+            <img id="cat-poop" src="./cat-poop.png" class="hidden cursor-pointer absolute" />
         </div>
 
         <!-- Tombol Aksi (kiri bawah) -->

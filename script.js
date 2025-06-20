@@ -5,15 +5,45 @@ const meowlifeMachine = createMachine({
     id: 'meowlife',
     initial: 'idle',
     context: {
-        energy: 100,
-        satiety: 100,
-        cleanliness: 100,
-        mood: 100,
+        energy: 50,
+        satiety: 50,
+        cleanliness: 50,
+        mood: 0,
+        lv: 1,
         xp: 0,
         money: 5
     },
     states: {
         idle: {
+            after: {
+                5000: {
+                    actions: [
+                        () => {
+                            document.getElementById('cat-poop').classList.remove('hidden');
+                        }
+                    ]
+                }
+            },
+            always: [
+                {
+                    cond: (context) => context.xp >= 1000,
+                    target: 'celebrate',
+                    actions:[
+                        assign({
+                            lv: (context) => context.lv + 1,
+                        })
+                    ]
+                },
+                {
+                    cond: (context) => context.mood >= 100,
+                    target: 'reward',
+                    actions: [
+                        assign({
+                            mood: (context) => Math.max(0, context.mood - 100),
+                        })
+                    ]
+                }
+            ],
             on: {
                 MEOW: {
                     target: 'meowing'
@@ -27,7 +57,7 @@ const meowlifeMachine = createMachine({
                     actions: [
                         assign({
                             xp: (context) => context.xp + 150,
-                            satiety: (context) => Math.min(100, context.satiety + 20),
+                            satiety: (context) => Math.min(100, context.satiety + 30),
                             money: (context) => Math.max(0, context.money - 5),
                         })
                     ],
@@ -38,14 +68,30 @@ const meowlifeMachine = createMachine({
                     actions: [
                         assign({
                             xp: (context) => context.xp + 200,
-                            satiety: (context) => Math.min(100, context.satiety + 30),
+                            satiety: (context) => Math.min(100, context.satiety + 40),
                             money: (context) => Math.max(0, context.money - 8),
                         })
                     ],
                 },
                 BATH: {
                     target: 'bathing',
-                }
+                },
+                CLEAN_POOP: {
+                    target: 'idle',
+                    actions: [
+                        assign({
+                            money: (context) => context.money + 3,
+                            cleanliness: (context) => Math.max(0, context.cleanliness - 10),
+                            mood: (context) => Math.min(100, context.mood + 5),
+                            satiety: (context) => Math.max(0, context.satiety - 10),
+                            energy: (context) => Math.max(0, context.energy - 10),
+                            xp: (context) => context.xp + 150
+                        }),
+                        () => {
+                            document.getElementById('cat-poop').classList.add('hidden');
+                        }
+                    ]
+                },
             }
         },
         meowing: {
@@ -54,7 +100,7 @@ const meowlifeMachine = createMachine({
                     target: 'idle',
                     actions: [
                         assign({
-                            xp: (context) => context.xp + 100,
+                            xp: (context) => context.xp + 500,
                             energy: (context) => Math.max(0, context.energy - 7),
                             satiety: (context) => Math.max(0, context.satiety - 10),
                             mood: (context) => Math.min(100, context.mood + 10)
@@ -92,24 +138,24 @@ const meowlifeMachine = createMachine({
             on: {
                 TICK: {
                     actions: assign({
-                        energy: (ctx) => Math.min(100, ctx.energy + 20),
+                        energy: (ctx) => Math.min(100, ctx.energy + 5),
                         satiety: (ctx) => Math.max(0, ctx.satiety - 5),
                         cleanliness: (ctx) => Math.max(0, ctx.cleanliness - 8),
-                        mood: (ctx) => Math.min(100, ctx.mood + 20)
                     })
                 }
             },
-            after: {
+            after: {    
                 5000: { target: 'idle', actions: [
                     assign({
                         xp: (context) => context.xp + 200,
+                        mood: (ctx) => Math.min(100, ctx.mood + 25)
                     })
                 ]},
             }
         },
         bathing: {
             after: {
-                5000: {
+                7000: {
                     target: 'idle',
                     actions: [
                         assign({
@@ -117,6 +163,32 @@ const meowlifeMachine = createMachine({
                             energy: (context) => Math.max(0, context.energy - 10),
                             cleanliness: (context) => Math.min(100, context.cleanliness = 100),
                             satiety: (context) => Math.max(0, context.satiety - 7),
+                        })
+                    ]
+                }
+            }
+        },
+        reward: {
+            after: {
+                8000: {
+                    target: 'idle',
+                    actions: [
+                        assign({
+                            money: (context) => context.money + 20,
+                            xp: (context) => context.xp + 200,
+                        })
+                    ]
+                }
+            }
+        },
+        celebrate: {
+            after: {
+                8000: {
+                    target: 'idle',
+                    actions: [
+                        assign({
+                            money: (context) => context.money + 30,
+                            xp: (_) => 0,
                         })
                     ]
                 }
@@ -133,10 +205,6 @@ function getBarWidth(value) {
     return Math.max(0, Math.min(100, value)) + '%';
 }
 
-function getLevel(xp) {
-    return Math.floor(xp / 1000) + 1;
-}
-
 function getXPForCurrentLevel(xp) {
     return xp % 1000;
 }
@@ -144,8 +212,6 @@ function getXPForCurrentLevel(xp) {
 function getXPForNextLevel() {
     return 1000;
 }
-
-
 
 // Update UI function
 function updateUI(state) {
@@ -165,7 +231,7 @@ function updateUI(state) {
     document.getElementById('mood-bar').style.width = getBarWidth(context.mood);
 
     // Update experience
-    const level = getLevel(context.xp);
+    const level = context.lv;
     const currentXP = getXPForCurrentLevel(context.xp);
     const nextLevelXP = getXPForNextLevel();
 
@@ -176,11 +242,13 @@ function updateUI(state) {
 
     // Handle meowing state
     const cat = document.getElementById('cat');
+    const loveLove = document.getElementById('love1');
     const soundBtn = document.getElementById('sound-btn');
     const sleepBtn = document.getElementById('sleep-btn');
     const bathBtn = document.getElementById('bath-btn');
     const feedBtn = document.getElementById('feed-btn');
     const dropdown = document.getElementById('dropdown-feed-options');
+    const celebrate = document.getElementById('celebrate');
 
     // Toggle dropdown saat tombol diklik
     feedBtn.addEventListener('click', () => {
@@ -199,6 +267,12 @@ function updateUI(state) {
         new Audio('./cat-meow.mp3').play();
         soundBtn.disabled = true;
         soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        sleepBtn.disabled = true;
+        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        bathBtn.disabled = true;
+        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        feedBtn.disabled = true;
+        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
     } else if (state.matches('sleeping')) {
         cat.innerHTML = `<img src="./cat-sleep.png" alt="Cat Sleeping" />`;
         soundBtn.disabled = true;
@@ -223,6 +297,33 @@ function updateUI(state) {
     }
     else if (state.matches('bathing')) {
         cat.innerHTML = `<img src="./cat-bathing.png" alt="Cat Bathing" />`;
+        new Audio('./cat-bath-shower.wav').play();
+        soundBtn.disabled = true;
+        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        sleepBtn.disabled = true;
+        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        bathBtn.disabled = true;
+        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        feedBtn.disabled = true;
+        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+    else if (state.matches('reward')) {
+        cat.innerHTML = `<img src="./cat-happy.gif" alt="Cat Happy" />`;
+        new Audio('./cat-happy.mp3').play();
+        loveLove.classList.remove('hidden');
+        soundBtn.disabled = true;
+        soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        sleepBtn.disabled = true;
+        sleepBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        bathBtn.disabled = true;
+        bathBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        feedBtn.disabled = true;
+        feedBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+    else if (state.matches('celebrate')) {
+        cat.innerHTML = `<img src="./cat-celebration.gif" alt="cat Celebrate" />`;
+        new Audio('./celebrate.mp3').play();
+        celebrate.classList.remove('hidden');
         soundBtn.disabled = true;
         soundBtn.classList.add('opacity-50', 'cursor-not-allowed');
         sleepBtn.disabled = true;
@@ -234,6 +335,8 @@ function updateUI(state) {
     }
     else {
         cat.innerHTML = `<img src="./cat.png" alt="Cat" />`;
+        loveLove.classList.add('hidden');
+        celebrate.classList.add('hidden');
         soundBtn.disabled = false;
         sleepBtn.disabled = false;
         bathBtn.disabled = false;
@@ -261,6 +364,10 @@ document.getElementById('feed-fish').addEventListener('click', () => {
 document.getElementById('bath-btn').addEventListener('click', () => {
     service.send({ type: 'BATH' });
 });
+document.getElementById('cat-poop').addEventListener('click', () => {
+    service.send('CLEAN_POOP');
+});
+
 
 // Subscribe to state changes
 service.onTransition((state) => {
