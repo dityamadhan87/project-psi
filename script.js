@@ -92,6 +92,23 @@ const meowlifeMachine = createMachine({
                         }
                     ]
                 },
+                },
+                CLEAN_POOP: {
+                    target: 'idle',
+                    actions: [
+                        assign({
+                            money: (context) => context.money + 3,
+                            cleanliness: (context) => Math.max(0, context.cleanliness - 10),
+                            mood: (context) => Math.min(100, context.mood + 5),
+                            satiety: (context) => Math.max(0, context.satiety - 10),
+                            energy: (context) => Math.max(0, context.energy - 10),
+                            xp: (context) => context.xp + 150
+                        }),
+                        () => {
+                            document.getElementById('cat-poop').classList.add('hidden');
+                        }
+                    ]
+                },
             }
         },
         meowing: {
@@ -347,6 +364,19 @@ function updateUI(state) {
         feedBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 }
+
+const feedBtn = document.getElementById('feed-btn');
+const dropdown = document.getElementById('dropdown-feed-options');
+
+document.getElementById('feed-btn').addEventListener('click', () => {
+    dropdown.classList.toggle('hidden');
+});
+
+document.addEventListener('click', (event) => {
+    if (!feedBtn.contains(event.target) && !dropdown.contains(event.target)) {
+        dropdown.classList.add('hidden');
+    }
+});
 
 // Event listeners
 document.getElementById('sound-btn').addEventListener('click', () => {
